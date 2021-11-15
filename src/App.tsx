@@ -13,14 +13,13 @@ import {
 } from '@chakra-ui/react'
 import axios from 'axios'
 import moment from 'moment'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useMediaQuery } from 'react-responsive'
 import { endpoints } from './endpoints'
 
 export const App = () => {
-	const [page, setPage] = useState<number>(1)
-	const [reachedMax, setReachedMax] = useState<boolean>(false)
 	const [time, setTime] = useState<string>(moment().format('HH:MM'))
+	const [filter, setFilter] = useState<string>('')
 	const [externalId, setExternalId] = useState<string>('')
 	const [imageBase64, setImageBase64] = useState<string>()
 	const [cameraList, setCameraList] = useState<Array<any>>([])
@@ -28,25 +27,22 @@ export const App = () => {
 
 	async function getCameras() {
 		const { data } = await axios.post(endpoints.list.url, {
-			page,
+			page: 1,
 			limit: 100,
 			objectType: 'cameras',
-			filter: '',
+			filter,
 		})
 		if (data.success) {
-			data.data.page < data.data.pages ? setPage(page + 1) : setReachedMax(true)
-			setCameraList([
-				...cameraList,
-				...data.data.docs.filter((x: any) => x.is_active),
-			])
+			if (filter !== '') {
+				setCameraList(data.data.docs.filter((x: any) => x.is_active))
+			} else {
+				setCameraList([
+					...cameraList,
+					...data.data.docs.filter((x: any) => x.is_active),
+				])
+			}
 		}
 	}
-
-	useEffect(() => {
-		if (!reachedMax) {
-			getCameras()
-		}
-	})
 
 	async function getImage() {
 		const { data } = await axios.post(endpoints.image.url, {
@@ -69,6 +65,15 @@ export const App = () => {
 				<VStack>
 					<HStack>
 						<VStack maxW={'60vw'}>
+							<Input
+								value={filter}
+								onChange={async (e) => {
+									setFilter(e.target.value)
+									setTimeout(async () => {
+										await getCameras()
+									}, 2000)
+								}}
+							/>
 							<Select
 								onChange={async (e) => {
 									setExternalId(e.target.value)
@@ -121,6 +126,15 @@ export const App = () => {
 			) : (
 				<HStack>
 					<VStack maxW={'calc(20vw - 20px)'}>
+						<Input
+							value={filter}
+							onChange={async (e) => {
+								setFilter(e.target.value)
+								setTimeout(async () => {
+									await getCameras()
+								}, 1000)
+							}}
+						/>
 						<Select
 							onChange={async (e) => {
 								setExternalId(e.target.value)
